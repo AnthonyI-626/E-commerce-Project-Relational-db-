@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from marshmallow import fields
+from flask_marshmallow import Marshmallow
 from sqlalchemy.sql import func
 
 
@@ -9,6 +10,8 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://ecom_user:securepassword@localhost/ecommerce_api'
 
 db = SQLAlchemy(app)
+ma = Marshmallow(app)
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,31 +45,31 @@ class OrderProduct(db.Model):
 with app.app_context():
     db.create_all()
 
-class UserSchema(SQLAlchemyAutoSchema):
+class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
         include_fk = True
         load_instance = True
         
-    orders = fields.List(fields.Nested('OrderSchema', exclude=('user',)))
+    
         
 
-class OrderSchema(SQLAlchemyAutoSchema):
+class OrderSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model=Order
         include_fk = True
         load_instance = True
     
-    products = fields.List(fields.Nested('ProductSchema', exclude=('orders',)))
+   
     
     
-class ProductSchema(SQLAlchemyAutoSchema):
+class ProductSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Product
         include_fk = True
         load_instance = True
         
-    orders = fields.List(fields.Nested('OrderSchema', exclude=('products',)))
+    
     
     
 user_schema = UserSchema()
@@ -92,7 +95,7 @@ def create_user():
     new_user = user_schema.load(data, session=db.session)
     db.session.add(new_user)
     db.session.commit()
-    return user_schema.jsonify(new_user), 201
+    return user_schema.dump(new_user), 201
 
 @app.route("/users/<int:id>", methods=["PUT"])
 def update_user(id):
